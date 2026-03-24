@@ -4,11 +4,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createSupabaseServerClient } from "@/lib/supabase";
-import { FanMailCard } from "@/components/search/fan-mail-card";
+import { CelebrityProfileCard } from "@/components/ui/celebrity-profile-card";
 import type { Database } from "@/types/supabase";
 
 type PageProps = {
@@ -24,13 +21,6 @@ function formatCategory(cat: string) {
   if (cat === "actor") return "Actor";
   if (cat === "musician") return "Musician";
   return cat;
-}
-
-function isUpcoming(dateStr: string | null) {
-  if (!dateStr) return false;
-  const today = new Date();
-  const d = new Date(dateStr + "T00:00:00");
-  return d.getTime() >= new Date(today.toDateString()).getTime();
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -75,7 +65,6 @@ export default async function CelebritySearchPage({ params }: PageProps) {
   type AppearanceRow = Database["public"]["Tables"]["appearances"]["Row"];
   type FanMailRow = Database["public"]["Tables"]["fan_mail_addresses"]["Row"];
 
-  // 1) Prefer exact slug match
   const { data: exact, error: exactErr } = await supabase
     .from("celebrities")
     .select("*")
@@ -96,6 +85,7 @@ export default async function CelebritySearchPage({ params }: PageProps) {
     if (matchErr) throw matchErr;
     list = (matches ?? []) as CelebrityRow[];
   }
+
   if (!list.length) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-10">
@@ -114,8 +104,6 @@ export default async function CelebritySearchPage({ params }: PageProps) {
     );
   }
 
-  // If multiple matches, show a fast list of results first.
-  // If only one match (or exact slug), show the full profile.
   if (!exact && list.length > 1) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-10">
@@ -173,197 +161,51 @@ export default async function CelebritySearchPage({ params }: PageProps) {
       .limit(1)
       .maybeSingle(),
     ]);
+
   if (appErr) throw appErr;
   if (fmErr) throw fmErr;
 
   const appearances = (appearancesRaw ?? []) as AppearanceRow[];
   const fanMail = (fanMailRaw ?? null) as FanMailRow | null;
 
-  const upcoming = appearances.filter((a) => isUpcoming(a.event_date));
-  const past = appearances.filter((a) => !isUpcoming(a.event_date)).reverse();
+  const profileCardData = {
+    name: celebrity.name,
+    photoUrl: celebrity.image_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face", 
+    bio: celebrity.bio || "Bio coming soon.",
+    categories: [formatCategory(celebrity.category)],
+    filmography: [], 
+    conventions: appearances.map(a => ({
+      id: a.id.toString(),
+      name: a.event_name,
+      location: a.location || "Unknown location",
+      date: a.event_date ? new Date(a.event_date).toLocaleDateString() : "TBA",
+      booth: a.type || "Appearance"
+    })),
+    fanMailAddress: fanMail?.address || "No verified fan mail address available."
+  };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-            {celebrity.image_url ? (
-              <Image
-                src={celebrity.image_url}
-                alt={celebrity.name}
-                fill
-                sizes="80px"
-                className="object-cover"
-                priority
-              />
-            ) : null}
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-white">
-                {celebrity.name}
-              </h1>
-              <Badge className="bg-white/10 text-white/80">
-                {formatCategory(celebrity.category)}
-              </Badge>
-            </div>
-            <div className="mt-1 text-sm text-white/60">/{celebrity.slug}</div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button className="bg-white/10 text-white hover:bg-white/20" type="button">
-            Add to favorites
-          </Button>
-        </div>
+    <main className="min-h-screen bg-background">
+      {/* Cosmic background effect */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl" />
       </div>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-white/5 p-5">
-            <div className="text-sm font-medium text-white">Bio</div>
-            <Separator className="my-4 bg-white/10" />
-            <div className="text-sm leading-7 text-white/80 whitespace-pre-line">
-              {celebrity.bio || "Bio coming soon."}
-            </div>
-          </Card>
-
-          <Card className="bg-white/5 p-5">
-            <div className="text-sm font-medium text-white">Official link</div>
-            <Separator className="my-4 bg-white/10" />
-            {celebrity.official_url ? (
-              <a
-                href={celebrity.official_url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-violet-200 underline underline-offset-4 hover:text-violet-100"
-              >
-                {celebrity.official_url}
-              </a>
-            ) : (
-              <div className="text-sm text-white/60">
-                No link yet. Add <code className="text-white/80">official_url</code>{" "}
-                in Supabase.
-              </div>
-            )}
-          </Card>
-
-          <Card className="bg-white/5 p-5">
-            <div className="text-sm font-medium text-white">Conventions</div>
-            <div className="mt-2 text-xs text-white/50">
-              Upcoming first, then past.
-            </div>
-            <Separator className="my-4 bg-white/10" />
-
-            <div className="space-y-6">
-              <div>
-                <div className="text-xs font-medium text-white/70">Upcoming</div>
-                <div className="mt-2 rounded-xl border border-white/10">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-white/10">
-                        <TableHead className="text-white/70">Event</TableHead>
-                        <TableHead className="text-white/70">Date</TableHead>
-                        <TableHead className="text-white/70">Location</TableHead>
-                        <TableHead className="text-right text-white/70">Type</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(upcoming.length ? upcoming : []).map((a) => (
-                        <TableRow key={a.id} className="border-white/10">
-                          <TableCell className="text-white">
-                            {a.url ? (
-                              <a className="underline underline-offset-4" href={a.url} target="_blank" rel="noreferrer">
-                                {a.event_name}
-                              </a>
-                            ) : (
-                              a.event_name
-                            )}
-                          </TableCell>
-                          <TableCell className="text-white/70">{a.event_date ?? "—"}</TableCell>
-                          <TableCell className="text-white/70">{a.location ?? "—"}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge className="bg-white/10 text-white/80">{a.type}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {!upcoming.length ? (
-                        <TableRow className="border-white/10">
-                          <TableCell className="text-white/60" colSpan={4}>
-                            No upcoming appearances yet.
-                          </TableCell>
-                        </TableRow>
-                      ) : null}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs font-medium text-white/70">Past</div>
-                <div className="mt-2 rounded-xl border border-white/10">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-white/10">
-                        <TableHead className="text-white/70">Event</TableHead>
-                        <TableHead className="text-white/70">Date</TableHead>
-                        <TableHead className="text-white/70">Location</TableHead>
-                        <TableHead className="text-right text-white/70">Type</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(past.length ? past : []).map((a) => (
-                        <TableRow key={a.id} className="border-white/10">
-                          <TableCell className="text-white">
-                            {a.url ? (
-                              <a className="underline underline-offset-4" href={a.url} target="_blank" rel="noreferrer">
-                                {a.event_name}
-                              </a>
-                            ) : (
-                              a.event_name
-                            )}
-                          </TableCell>
-                          <TableCell className="text-white/70">{a.event_date ?? "—"}</TableCell>
-                          <TableCell className="text-white/70">{a.location ?? "—"}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge className="bg-white/10 text-white/80">{a.type}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {!past.length ? (
-                        <TableRow className="border-white/10">
-                          <TableCell className="text-white/60" colSpan={4}>
-                            No past appearances yet.
-                          </TableCell>
-                        </TableRow>
-                      ) : null}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </div>
-          </Card>
+      
+      <div className="relative z-10 px-4 py-12 md:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl mb-6 flex justify-between">
+          <Link href="/" className="text-sm text-white/50 hover:text-white inline-flex items-center gap-2">
+            &larr; Back to Search
+          </Link>
+          {celebrity.official_url && (
+            <a href={celebrity.official_url} target="_blank" rel="noreferrer" className="text-sm text-white/50 hover:text-white">
+              Official Website &#8599;
+            </a>
+          )}
         </div>
-
-        <div className="space-y-6">
-          <FanMailCard
-            name={celebrity.name}
-            address={fanMail?.address ?? null}
-            verified={fanMail?.verified ?? false}
-            source={fanMail?.source ?? null}
-            lastUpdated={fanMail?.last_updated ?? null}
-          />
-
-          <Card className="bg-white/5 p-5">
-            <div className="text-sm font-medium text-white">More</div>
-            <Separator className="my-4 bg-white/10" />
-            <div className="text-sm text-white/70">
-              Want to edit this profile? Admin write access will be added later.
-            </div>
-          </Card>
-        </div>
+        <CelebrityProfileCard celebrity={profileCardData} />
       </div>
     </main>
   );
 }
-
