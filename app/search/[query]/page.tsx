@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -196,12 +195,11 @@ export default async function CelebritySearchPage({ params }: PageProps) {
           <div className="flex flex-col md:flex-row gap-8">
             {celebrity.image_url && (
               <div className="md:w-96">
-                <Image
+                <img
                   src={celebrity.image_url}
                   alt={celebrity.name}
-                  width={400}
-                  height={400}
                   className="rounded-lg w-full h-auto object-cover"
+                  style={{ maxWidth: '400px', height: 'auto' }}
                 />
               </div>
             )}
