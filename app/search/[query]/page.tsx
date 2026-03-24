@@ -219,13 +219,16 @@ export default async function CelebritySearchPage({ params }: PageProps) {
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-white mb-3">🎤 Appearances</h3>
                   <div className="space-y-2">
-                    {appearances.map((app) => (
-                      <div key={app.id} className="text-sm text-white/70">
-                        <span className="font-medium">{app.event_name}</span>
-                        {app.location && <span> • {app.location}</span>}
-                        {app.event_date && <span> • {new Date(app.event_date).toLocaleDateString()}</span>}
-                      </div>
-                    ))}
+                    {appearances.map((app) => {
+                      const dateStr = app.event_date ? new Date(app.event_date).toLocaleDateString() : "TBA";
+                      return (
+                        <div key={app.id} className="text-sm text-white/70">
+                          <span className="font-medium">{app.event_name}</span>
+                          {app.location && <span> • {app.location}</span>}
+                          <span> • {dateStr}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
