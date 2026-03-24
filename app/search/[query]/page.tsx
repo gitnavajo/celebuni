@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { CelebrityProfileCard } from "@/components/ui/celebrity-profile-card";
 import type { Database } from "@/types/supabase";
+import type { CelebrityExtended } from "@/types/extended";
+import { SocialMediaCard } from "@/components/social-media-card";
+import { EnhancedFanMailCard } from "@/components/fan-mail/enhanced-fan-mail-card";
+import { trackViewAction } from "@/app/actions/tracking";
 
 type PageProps = {
   params: Promise<{ query: string }>;
@@ -145,6 +149,9 @@ export default async function CelebritySearchPage({ params }: PageProps) {
 
   const celebrity = (exact ?? list[0]!) as CelebrityRow;
 
+  // Track view
+  await trackViewAction(celebrity.id);
+
   const [{ data: appearancesRaw, error: appErr }, { data: fanMailRaw, error: fmErr }] =
     await Promise.all([
       supabase
@@ -157,16 +164,15 @@ export default async function CelebritySearchPage({ params }: PageProps) {
       .select("*")
       .eq("celebrity_id", celebrity.id)
       .order("verified", { ascending: false })
-      .order("last_updated", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order("last_updated", { ascending: false }),
     ]);
 
   if (appErr) throw appErr;
   if (fmErr) throw fmErr;
 
   const appearances = (appearancesRaw ?? []) as AppearanceRow[];
-  const fanMail = (fanMailRaw ?? null) as FanMailRow | null;
+  const fanMailAddresses = (fanMailRaw ?? []) as FanMailRow[];
+  const fanMail = fanMailAddresses[0] || null;
 
   const profileCardData = {
     name: celebrity.name,
@@ -205,6 +211,28 @@ export default async function CelebritySearchPage({ params }: PageProps) {
           )}
         </div>
         <CelebrityProfileCard celebrity={profileCardData} />
+        
+        {/* New Features Section */}
+        <div className="mx-auto max-w-5xl mt-12 space-y-8">
+          {/* Social Media Links */}
+          {(celebrity.twitter_handle || celebrity.instagram_handle || celebrity.tiktok_handle || celebrity.youtube_url) && (
+            <SocialMediaCard celebrity={celebrity as CelebrityExtended} />
+          )}
+          
+          {/* Enhanced Fan Mail Cards */}
+          {fanMailAddresses.length > 0 && (
+            <EnhancedFanMailCard
+              fanMailAddresses={fanMailAddresses.map(fm => ({
+                id: fm.id || '',
+                address: fm.address || '',
+                verified: fm.verified || false,
+                source: fm.source || null,
+              }))}
+              celebrityId={celebrity.id}
+              celebrityName={celebrity.name}
+            />
+          )}
+        </div>
       </div>
     </main>
   );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SearchHero } from "@/components/search/search-hero";
+import { TrendingActorsSection } from "@/components/trending/trending-actors-section";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -28,6 +29,11 @@ export default function Home() {
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6">
         <SearchHero />
+
+        {/* Trending Actors Section */}
+        <div className="mt-12">
+          <TrendingActorsSection limit={6} />
+        </div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           <Card className="cosmic-glow bg-white/5 p-5">
