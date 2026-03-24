@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createSupabaseServerClient } from "@/lib/supabase";
-import { CelebrityProfileCard } from "@/components/ui/celebrity-profile-card";
 import type { Database } from "@/types/supabase";
 import { trackViewAction } from "@/app/actions/tracking";
 
@@ -171,22 +170,6 @@ export default async function CelebritySearchPage({ params }: PageProps) {
   const fanMailAddresses = (fanMailRaw ?? []) as FanMailRow[];
   const fanMail = fanMailAddresses[0] || null;
 
-  const profileCardData = {
-    name: celebrity.name,
-    photoUrl: celebrity.image_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face", 
-    bio: celebrity.bio || "Bio coming soon.",
-    categories: [formatCategory(celebrity.category)],
-    filmography: [], 
-    conventions: appearances.map(a => ({
-      id: a.id.toString(),
-      name: a.event_name,
-      location: a.location || "Unknown location",
-      date: a.event_date ? new Date(a.event_date).toLocaleDateString() : "TBA",
-      booth: a.type || "Appearance"
-    })),
-    fanMailAddress: fanMail?.address || "No verified fan mail address available."
-  };
-
   return (
     <main className="min-h-screen bg-background">
       {/* Cosmic background effect */}
@@ -207,12 +190,55 @@ export default async function CelebritySearchPage({ params }: PageProps) {
             </a>
           )}
         </div>
-        <CelebrityProfileCard celebrity={profileCardData} />
+
+        {/* Profile Card */}
+        <Card className="mx-auto max-w-5xl bg-white/5 border border-white/10 p-8 mb-8">
+          <div className="flex flex-col md:flex-row gap-8">
+            {celebrity.image_url && (
+              <div className="md:w-96">
+                <Image
+                  src={celebrity.image_url}
+                  alt={celebrity.name}
+                  width={400}
+                  height={400}
+                  className="rounded-lg w-full h-auto object-cover"
+                />
+              </div>
+            )}
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold text-white mb-2">{celebrity.name}</h1>
+              <div className="mb-4 flex gap-2">
+                <Badge className="bg-white/10 text-white/80">
+                  {formatCategory(celebrity.category)}
+                </Badge>
+              </div>
+              <p className="text-white/80 text-lg mb-6">
+                {celebrity.bio || "Bio coming soon."}
+              </p>
+              
+              {/* Appearances/Conventions */}
+              {appearances.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">🎤 Appearances</h3>
+                  <div className="space-y-2">
+                    {appearances.map((app) => (
+                      <div key={app.id} className="text-sm text-white/70">
+                        <span className="font-medium">{app.event_name}</span>
+                        {app.location && <span> • {app.location}</span>}
+                        {app.event_date && <span> • {new Date(app.event_date).toLocaleDateString()}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
         
-        {/* New Features Section - Optional */}
+        {/* New Features Section */}
         <div className="mx-auto max-w-5xl mt-12 space-y-8">
-          {/* Social Media Links - Only show if available */}
-          {celebrity.twitter_handle && (
+          {/* Social Media Links */}
+          {(celebrity.twitter_handle || celebrity.instagram_handle || celebrity.tiktok_handle || celebrity.youtube_url) && (
             <div className="rounded-lg bg-white/5 p-6 border border-white/10">
               <h3 className="text-lg font-semibold text-white mb-4">Follow {celebrity.name}</h3>
               <div className="flex flex-wrap gap-3">
