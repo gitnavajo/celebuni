@@ -7,9 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { CelebrityProfileCard } from "@/components/ui/celebrity-profile-card";
 import type { Database } from "@/types/supabase";
-import type { CelebrityExtended } from "@/types/extended";
-import { SocialMediaCard } from "@/components/social-media-card";
-import { EnhancedFanMailCard } from "@/components/fan-mail/enhanced-fan-mail-card";
 import { trackViewAction } from "@/app/actions/tracking";
 
 type PageProps = {
@@ -212,25 +209,75 @@ export default async function CelebritySearchPage({ params }: PageProps) {
         </div>
         <CelebrityProfileCard celebrity={profileCardData} />
         
-        {/* New Features Section */}
+        {/* New Features Section - Optional */}
         <div className="mx-auto max-w-5xl mt-12 space-y-8">
-          {/* Social Media Links */}
-          {(celebrity.twitter_handle || celebrity.instagram_handle || celebrity.tiktok_handle || celebrity.youtube_url) && (
-            <SocialMediaCard celebrity={celebrity as CelebrityExtended} />
+          {/* Social Media Links - Only show if available */}
+          {celebrity.twitter_handle && (
+            <div className="rounded-lg bg-white/5 p-6 border border-white/10">
+              <h3 className="text-lg font-semibold text-white mb-4">Follow {celebrity.name}</h3>
+              <div className="flex flex-wrap gap-3">
+                {celebrity.twitter_handle && (
+                  <a
+                    href={`https://twitter.com/${celebrity.twitter_handle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                  >
+                    Twitter
+                  </a>
+                )}
+                {celebrity.instagram_handle && (
+                  <a
+                    href={`https://instagram.com/${celebrity.instagram_handle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                  >
+                    Instagram
+                  </a>
+                )}
+                {celebrity.tiktok_handle && (
+                  <a
+                    href={`https://tiktok.com/@${celebrity.tiktok_handle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                  >
+                    TikTok
+                  </a>
+                )}
+                {celebrity.youtube_url && (
+                  <a
+                    href={celebrity.youtube_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                  >
+                    YouTube
+                  </a>
+                )}
+              </div>
+            </div>
           )}
           
-          {/* Enhanced Fan Mail Cards */}
+          {/* Fan Mail Addresses */}
           {fanMailAddresses.length > 0 && (
-            <EnhancedFanMailCard
-              fanMailAddresses={fanMailAddresses.map(fm => ({
-                id: fm.id || '',
-                address: fm.address || '',
-                verified: fm.verified || false,
-                source: fm.source || null,
-              }))}
-              celebrityId={celebrity.id}
-              celebrityName={celebrity.name}
-            />
+            <div className="rounded-lg bg-white/5 p-6 border border-white/10">
+              <h3 className="text-lg font-semibold text-white mb-4">📬 Fan Mail</h3>
+              <div className="space-y-3">
+                {fanMailAddresses.map((fm) => (
+                  <div key={fm.id} className="bg-white/5 p-3 rounded border border-white/10">
+                    <p className="text-white font-mono text-sm break-all">{fm.address}</p>
+                    {fm.verified && (
+                      <p className="text-xs text-green-400 mt-1">✓ Verified</p>
+                    )}
+                    {fm.source && (
+                      <p className="text-xs text-white/50 mt-1">Source: {fm.source}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
